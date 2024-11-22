@@ -1,2 +1,1 @@
-# moonshot-museum
-Artifacts of Moonshot Academy
+# DO NOT MERGE TO MAIN AND PUSH IN LOCAL REPOSITORY!
