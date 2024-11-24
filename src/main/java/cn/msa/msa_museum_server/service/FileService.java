@@ -1,6 +1,5 @@
 package cn.msa.msa_museum_server.service;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,10 +15,9 @@ import cn.msa.msa_museum_server.exception.ExceptionEnum;
 @Service
 public class FileService {
 
-    private final String uploadDir = "/path/to/upload"; // 存储路径
+    private final String uploadDir = ""; // 存储路径
 
     public FileEntity upload(MultipartFile file) {
-
         if (file.isEmpty()) {
             throw new BusinessException(ExceptionEnum.EMPTY_FILE);
         }
@@ -33,7 +31,7 @@ public class FileService {
 
             return new FileEntity(fileName, filePath.toString());
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new BusinessException(ExceptionEnum.UPLOAD_FILE_ERROR);
         }
     }
