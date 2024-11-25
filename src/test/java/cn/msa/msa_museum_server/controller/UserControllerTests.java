@@ -65,7 +65,7 @@ public class UserControllerTests {
     @Test
     public void testLoginAndResetPassword() throws Exception {
         // 1. Perform login and retrieve the JWT token
-        String loginRequestJson = objectMapper.writeValueAsString(new LoginRequest("user", "2aA@93r3f"));
+        String loginRequestJson = objectMapper.writeValueAsString(new LoginRequest("user", "4aA@93r3f"));
 
         String jwtToken = mockMvc.perform(post("/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -83,8 +83,8 @@ public class UserControllerTests {
         String resetPasswordRequestJson = """
         {
             "username": "user",
-            "password": "2aA@93r3f",
-            "new_password": "3aA@93r3f"
+            "password": "4aA@93r3f",
+            "new_password": "5aA@93r3f"
         }
         """;
 
