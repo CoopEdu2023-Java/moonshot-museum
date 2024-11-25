@@ -3,20 +3,22 @@ package cn.msa.msa_museum_server.exception;
 import lombok.Getter;
 
 @Getter
-
 public class BusinessException extends RuntimeException {
 
     private final String code;
-    private final String message;
 
     public BusinessException(String code, String message) {
         super(message);
         this.code = code;
-        this.message = message;
+    }
+
+    public BusinessException(ExceptionEnum exceptionEnum) {
+        super(exceptionEnum.getMessage());
+        this.code = exceptionEnum.getCode();
     }
 
     @Override
     public String getMessage() {
-        return message;
+        return super.getMessage();
     }
 }

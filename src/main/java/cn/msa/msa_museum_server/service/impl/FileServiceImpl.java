@@ -13,8 +13,13 @@ import cn.msa.msa_museum_server.service.FileService;
 @Service
 public class FileServiceImpl implements FileService {
 
+
+    private final FileRepository fileRepository;
+
     @Autowired
-    private FileRepository fileRepository;
+    public FileServiceImpl(FileRepository fileRepository) {
+        this.fileRepository = fileRepository;
+    }
 
     @Override
     public ResponseDto<Page<FileDto>> getFileList(Pageable pageable) {
