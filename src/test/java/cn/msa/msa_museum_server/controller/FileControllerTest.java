@@ -1,11 +1,14 @@
 package cn.msa.msa_museum_server.controller;
 
 import cn.msa.msa_museum_server.dto.FileMetadataDto;
+import cn.msa.msa_museum_server.dto.FileRequestTypeDto;
+import cn.msa.msa_museum_server.exception.ExceptionEnum;
 import cn.msa.msa_museum_server.service.FileService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -41,7 +44,7 @@ public class FileControllerTest {
     }
 
     @Test
-    public void testGetFileMetadataSuccess() throws Exception {
+    public void testGetFileMetadata_Success() throws Exception {
         String fileId = "123";
         setupFileMetadata(fileId);
 
@@ -57,10 +60,11 @@ public class FileControllerTest {
     }
 
     @Test
-    public void testGetFileContentSuccess() throws Exception {
+    public void testGetFileContent_Success() throws Exception {
         String fileId = "123";
         setupFileMetadata(fileId);
         when(fileService.getFileContent(fileId)).thenReturn(resource);
+        when(fileService.supportFileRequestType(fileId, FileRequestTypeDto.FULL)).thenReturn(true);
         when(resource.getFilename()).thenReturn("test.pdf");
 
         MockHttpServletResponse response = mockMvc.perform(get("/files/123/content"))
@@ -71,5 +75,51 @@ public class FileControllerTest {
         assertTrue(response.getHeaderNames().contains(HttpHeaders.CONTENT_DISPOSITION));
         assertEquals("inline; filename=\"test.pdf\"", response.getHeader(HttpHeaders.CONTENT_DISPOSITION));
         assertEquals("application/pdf", response.getContentType());
+    }
+
+    @Test
+    public void testGetFileContentRanged_Success() throws Exception {
+        String fileId = "123";
+        setupFileMetadata(fileId);
+        Resource resource = new ByteArrayResource("test content".getBytes());
+        when(fileService.getFileContent(fileId)).thenReturn(resource);
+        when(fileService.supportFileRequestType(fileId, FileRequestTypeDto.RANGE)).thenReturn(true);
+
+        MockHttpServletResponse response = mockMvc.perform(get("/files/123/content")
+                .header(HttpHeaders.RANGE, "bytes=0-1023"))
+                .andExpect(status().isPartialContent())
+                .andReturn()
+                .getResponse();
+
+        assertTrue(response.getHeaderNames().contains(HttpHeaders.CONTENT_DISPOSITION));
+        assertEquals("inline; filename=\"test.pdf\"", response.getHeader(HttpHeaders.CONTENT_DISPOSITION));
+        assertEquals("application/pdf", response.getContentType());
+    }
+
+    @Test
+    public void testGetFileContentRanged_InvalidRange() throws Exception {
+        String fileId = "123";
+        setupFileMetadata(fileId);
+        Resource resource = new ByteArrayResource("test content".getBytes());
+        when(fileService.getFileContent(fileId)).thenReturn(resource);
+        when(fileService.supportFileRequestType(fileId, FileRequestTypeDto.RANGE)).thenReturn(true);
+
+        mockMvc.perform(get("/files/123/content")
+                .header(HttpHeaders.RANGE, "bytes=1024-2047"))
+                .andExpect(status().isRequestedRangeNotSatisfiable());
+    }
+
+    @Test
+    public void testGetFileContentRanged_InvalidRequestType() throws Exception {
+        String fileId = "123";
+        setupFileMetadata(fileId);
+        Resource resource = new ByteArrayResource("test content".getBytes());
+        when(fileService.getFileContent(fileId)).thenReturn(resource);
+        when(fileService.supportFileRequestType(fileId, FileRequestTypeDto.RANGE)).thenReturn(false);
+
+        mockMvc.perform(get("/files/123/content")
+                .header(HttpHeaders.RANGE, "bytes=1024-2047"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ExceptionEnum.INVALID_FILE_REQUEST_TYPE.getCode()));
     }
 }

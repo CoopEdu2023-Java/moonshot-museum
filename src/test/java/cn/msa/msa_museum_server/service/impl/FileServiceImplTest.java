@@ -69,7 +69,8 @@ public class FileServiceImplTest {
         FileMetadataEntity fileMetadataEntity = new FileMetadataEntity(
                 "test-file",
                 "text/plain",
-                "test-file.txt");
+                "test-file.txt",
+                12);
         fileMetadataEntity.setId(fileId);
 
         createTestFile(fileMetadataEntity, "test content");
@@ -103,7 +104,8 @@ public class FileServiceImplTest {
         FileMetadataEntity fileMetadataEntity = new FileMetadataEntity(
                 "test-file",
                 "text/plain",
-                "test-file.txt");
+                "test-file.txt",
+                12);
         fileMetadataEntity.setId(fileId);
 
         Path filePath = createTestFile(fileMetadataEntity, "test content");

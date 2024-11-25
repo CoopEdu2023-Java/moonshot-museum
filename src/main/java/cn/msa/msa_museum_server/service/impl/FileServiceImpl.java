@@ -1,21 +1,23 @@
 package cn.msa.msa_museum_server.service.impl;
 
-import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 
 import cn.msa.msa_museum_server.config.FileProperties;
 import cn.msa.msa_museum_server.dto.FileMetadataDto;
+import cn.msa.msa_museum_server.dto.FileRequestTypeDto;
 import cn.msa.msa_museum_server.entity.FileMetadataEntity;
 import cn.msa.msa_museum_server.exception.BusinessException;
 import cn.msa.msa_museum_server.exception.ExceptionEnum;
 import cn.msa.msa_museum_server.repository.FileMetadataRepository;
 import cn.msa.msa_museum_server.service.FileService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class FileServiceImpl implements FileService {
 
     // The location where files are stored
@@ -34,36 +36,33 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public FileMetadataDto getFileMetadata(String id) {
-        try {
-            FileMetadataEntity fileMetadataEntity = fileMetadataRepository.findById(id)
-                    .orElseThrow(() -> new BusinessException(ExceptionEnum.FILE_NOT_FOUND));
+        FileMetadataEntity fileMetadataEntity = fileMetadataRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ExceptionEnum.FILE_NOT_FOUND));
 
-            Path filePath = storageLocation.resolve(fileMetadataEntity.getPath());
+        Path filePath = storageLocation.resolve(fileMetadataEntity.getPath());
 
-            if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
-                throw new BusinessException(ExceptionEnum.FILE_NOT_FOUND);
-            }
-
-            long size = Files.size(filePath);
-
-            return new FileMetadataDto(
-                    id,
-                    fileMetadataEntity.getName(),
-                    fileMetadataEntity.getType(),
-                    formatFileSize(size),
-                    "/files/" + id + "/content");
-        } catch (IOException e) {
-            throw new RuntimeException("Error retrieving file metadata: " + e.getMessage(), e);
+        if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+            throw new BusinessException(ExceptionEnum.FILE_NOT_FOUND);
         }
+
+        long size = fileMetadataEntity.getSize();
+
+        return new FileMetadataDto(
+                id,
+                fileMetadataEntity.getName(),
+                fileMetadataEntity.getType(),
+                formatFileSize(size),
+                "/files/" + id + "/content");
     }
 
     @Override
     public Resource getFileContent(String id) {
-        try {
-            FileMetadataEntity fileMetadataEntity = fileMetadataRepository.findById(id)
-                    .orElseThrow(() -> new BusinessException(ExceptionEnum.FILE_NOT_FOUND));
+        FileMetadataEntity fileMetadataEntity = fileMetadataRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ExceptionEnum.FILE_NOT_FOUND));
 
-            Path filePath = storageLocation.resolve(fileMetadataEntity.getPath());
+        Path filePath = storageLocation.resolve(fileMetadataEntity.getPath());
+
+        try {
             Resource resource = new UrlResource(filePath.toUri());
 
             if (!resource.isReadable()) {
@@ -71,8 +70,30 @@ public class FileServiceImpl implements FileService {
             }
 
             return resource;
-        } catch (IOException e) {
-            throw new RuntimeException("Error retrieving file content: " + e.getMessage(), e);
+        } catch (MalformedURLException e) {
+            log.error("Error retrieving file content: {}", e.getMessage());
+            throw new BusinessException(ExceptionEnum.MALFORMED_FILE_PATH);
+        }
+    }
+
+    @Override
+    public boolean supportFileRequestType(String id, FileRequestTypeDto requestType) {
+        FileMetadataEntity fileMetadataEntity = fileMetadataRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ExceptionEnum.FILE_NOT_FOUND));
+
+        switch (fileMetadataEntity.getType()) {
+            case "image/jpeg":
+            case "image/png":
+            case "image/webp":
+            case "application/pdf":
+                return fileMetadataEntity.getSize() <= 10485760 && requestType == FileRequestTypeDto.FULL;
+            case "audio/mpeg":
+            case "audio/ogg":
+            case "audio/wav":
+            case "video/mp4":
+                return requestType == FileRequestTypeDto.RANGE;
+            default:
+                return false;
         }
     }
 

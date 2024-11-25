@@ -20,9 +20,12 @@ public class FileMetadataEntity {
 
     private String path;
 
-    public FileMetadataEntity(String name, String type, String path) {
+    private long size;
+
+    public FileMetadataEntity(String name, String type, String path, long size) {
         this.name = name;
         this.type = type;
         this.path = path;
+        this.size = size;
     }
 }
